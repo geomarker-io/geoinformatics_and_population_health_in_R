@@ -1,7 +1,6 @@
 # Reproducible Research in R: Geoinformatics, Epidemiology, and Publicly Available Health and GIS Data  
 
-**Instructor**: Cole Brokamp, Department of Pediatrics, Cincinnati Children's Hospital Medical Center; Cincinnati, OH  
-**Co-Instructors**: Chris Wolfe, Nobel Bhuiyan, Juliana Madzia, Erika Rasnick  
+**Instructors**: Cole Brokamp, Chris Wolfe, Department of Pediatrics, Cincinnati Children's Hospital Medical Center; Cincinnati, OH  
 **Setting**: Workshop for American College of Epidemiology 2018 Annual Meeting  
 **Date**: Sunday, September 23rd, 2018
 
@@ -9,14 +8,7 @@
 
 ## Description
 
-This workshop is designed for R beginners who wish to conduct reproducible research using geoinformatics and epidemiology methods with publicly available health and geospatial data. Participants will gain a general understanding of the software tools available and learn how to explore and learn them further on their own.  Additionally, participants will gain applied experience through a "hands on" session using R. Over the course of one day, we will cover:
-
-1. Brief introduction/refresher to `R` and the `tidyverse`
-2. Why to use R for reproducible research, including R Markdown and integrated data import, analysis, and reporting
-2. Introduction to using R for geoinformatics and GIS, including data import/export, interactive mapping, and GIS feature extraction
-3. How to access and use publicly available health and geospatial data in R to conduct an epidemiologic analysis
-
-The course will culminate in an applied example in which attendees will analyze the relationship between a geospatial measure and health outcome of their choosing. The entire project, including data import, exposure assessment, exploratory data analysis, mapping, statistical analysis, and reporting, will be conducted within R. 
+This workshop is designed for `R` beginners who wish to conduct reproducible research using geoinformatics and epidemiology methods with publicly available health and geospatial data. Participants will gain a general understanding of the software tools available and learn how to explore and learn them further on their own.  Additionally, participants will gain applied experience through a "hands on" session using `R`. Over the course of one day, we will cover (1) an introduction to geoinformatics for epidemiology, (2) a `tidyverse` and `R` refresher, (3) why to use `R` for reproducible research, (4) using spatial data within `R`, and (5) creating maps in `R`. The course will culminate in an applied example in which attendees will analyze the relationship between community material deprivation and pediatric hospital utilization. The entire project, including data import, exposure assessment, exploratory data analysis, mapping, statistical analysis, and reporting, will be conducted within `R`. 
 
 ## Course Requirements
 
@@ -27,73 +19,58 @@ The course will culminate in an applied example in which attendees will analyze 
 	- `sf`
 	- `tidycensus`
 	- `tigris`
-- Alternatively, an R Studio Server instance will be available for the duration of the course so that users can participate using any computer with a web browser.
+	- `tmap`
+	- `mapview`
+- Alternatively, the class will take place in a computer lab with the necessary software preinstalled and available for use.
 
 Please contact the course organizer, Cole Brokamp (cole dot brokamp at cchmc dot org) with any questions.
 
 ## Course Materials
 
-All course materials will be hosted within this repository (https://github.com/cole-brokamp/geoinformatics_and_population_health_in_R), including slides and example code.
+All course materials will be hosted within [this repository](https://github.com/cole-brokamp/geoinformatics_and_population_health_in_R), including slides and example code.
 
-## Detailed Course Outline
-
-*This is a work in progress and subject to change!*
-
-- Why to use `R` for reproducible research (Cole Brokamp)
-    - what is reproducible research?
-    - `knitr` and R Markdown
-    - motivating example
-- `tidyverse` refresher (Chris Wolfe)
-    - `magrittr` and the pipe operator, `%>%`
-    - `dplyr`: `select`, `filter`, `mutate`
-    - tidy data and `tidyr`
-    - `ggplot2`
-- Geoinformatics in R (Cole Brokamp)
-    - geospatial data (and simple features)
-    - `sf` package
-        - import/export of spatial data
-        - mapping with `ggplot2`
-        - mapping with `tmap` and `mapview`
-        - feature extraction (`st_join`, `st_buffer`, etc)
-- "Hands On" Example
-
-## Further Reading and Resources
-
-### Textbooks
+Recommended supplementary readings include:
 
 - [R for Data Science](http://r4ds.had.co.nz/)
 - [Geocomputation with R](https://geocompr.robinlovelace.net/)
+- [R-Spatial hub](http://r-spatial.org/)
 
-### Blog Posts, Vignettes, etc
+## Detailed Course Outline
 
-- https://www.r-spatial.org/r/2018/05/31/geocompr-erum.html
-- https://gist.github.com/anonymous/3d5b56cb16526db96dcaa0a579980187
-- https://github.com/abhirupdatta/spatial-statistics-2018/tree/master/slides
-- https://jessesadler.com/post/gis-with-r-intro/
+1. Introduction to Geoinformatics for Epidemiology
+	- geomarkers
+	- geocoding
+	- geospatial data
+	- geomarker assessment
+	- examples
+2. `tidyverse` Refresher
+	- tidy data structures
+    - `magrittr` and the pipe operator
+    - `dplyr`: `select()`, `filter()`, `mutate()`, 
+    - `dplyr`: `group_by()`, `summarize()`
+    - `tidyr`: `spread()`, `gather()`
+3. Why to use `R` for reproducible research
+    - what is reproducible research?
+    - `knitr` and R Markdown
+3. Geospatial data in `R`
+	- data formats and projections
+	- `tidycensus` / `tigris`
+	- simple features and `sf` package for R
+4. Mapping in `R`
+	- `ggplot2` support
+	- `tmap`
+	- `mapview`
+5. "Hands On" Example
+	- Ecological Association of Material Deprivation and Pediatric Hospital Utilization
+6. (Time Permitting)
+	- Open discussion and questions
+	- `crosstalk`
+	- `shiny`
+	- GRAPPH, DeGAUSS
 
-- [r-spatial](http://r-spatial.org/)
-- [Spatial Data in R: New Directions](https://edzer.github.io/UseR2017/) - Edzer Pebesma's UseR! 2017 tutorial
-- [ACS mapping with tidycensus - Austin Wehrwein](http://austinwehrwein.com/tutorials/update-2-acs-mapping-tidycensus/)
-- [Web Mapping in R](https://bhaskarvk.github.io/leaflet-talk-rstudioconf-2017/RstudioConf2017.html#1)
-	- [code for talk](https://github.com/bhaskarvk/leaflet-talk-rstudioconf-2017)
-	- [tons of leaflet examples on Bhaskar's RPubs site](http://rpubs.com/bhaskarvk)
 
-#### `tmap`
 
-- [https://github.com/mtennekes/tmap](https://github.com/mtennekes/tmap)
-- [tmap in a nutshell](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-nutshell.html)
-- [tmap modes: plot and interactive view](https://cran.r-project.org/web/packages/tmap/vignettes/tmap-modes.html)
 
-### Data Sources
-
-- [IPUMS](https://www.ipums.org/) - census and survey data from around the world integrated across time and space
-	- [IPUMS USA](https://usa.ipums.org/usa/) - US census data for social, economic, and health research
- 	- [IPUMS NHGIS](https://www.nhgis.org/) - US geographic summary data and boundary files
- 	- [IPUMS Terra](https://www.terrapop.org/) - integrated population and environmental data across disciplinary scientific domains
- 	- [IPUMS Health Surveys](https://www.ipums.org/healthsurveys.shtml - harmonized data from US national health surveys (NHIS & MEPS)
-- [Esri Open Data](https://hub.arcgis.com/pages/open-data) - contributed open data sets maintained by Esri
-- [USGS Earth Explorer](https://earthexplorer.usgs.gov/) - remote sensing data
-- [OpenStreetMap(OSM)](http://wiki.openstreetmap.org/wiki/Downloading_data) - crowdsourced map data
 
 
 
