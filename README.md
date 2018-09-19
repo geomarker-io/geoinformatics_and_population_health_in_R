@@ -2,6 +2,7 @@
 
 **Instructors**: Cole Brokamp, Chris Wolfe, Department of Pediatrics, Cincinnati Children's Hospital Medical Center; Cincinnati, OH  
 **Setting**: Workshop for American College of Epidemiology 2018 Annual Meeting  
+**Location**: University of Cincinnati, Medical Sciences Building (MSB), Room E-161  
 **Date**: Sunday, September 23rd, 2018
 
 *This workshop is supported by the Geospatial Research Accelerator for Precision Population Health (GRAPPH) at Cincinnati Children's Hospital Medical Center (CCHMC).*
@@ -46,20 +47,17 @@ Recommended supplementary readings include:
 2. `tidyverse` Refresher
 	- tidy data structures
     - `magrittr` and the pipe operator
-    - `dplyr`: `select()`, `filter()`, `mutate()`, 
-    - `dplyr`: `group_by()`, `summarize()`
+    - `dplyr`: `select()`, `filter()`, `mutate()`, `rename()`
     - `tidyr`: `spread()`, `gather()`
-3. Why to use `R` for reproducible research
-    - what is reproducible research?
-    - `knitr` and R Markdown
+    - `tidycensus`
 3. Geospatial data in `R`
 	- data formats and projections
-	- `tidycensus` / `tigris`
 	- simple features and `sf` package for R
-4. Mapping in `R`
-	- `ggplot2` support
-	- `tmap`
-	- `mapview`
+    - Mapping in `R` (`ggplot2`, `tmap`, `mapview`)
+    - `tigris` (and `tidycensus`)
+4. Why to use `R` for reproducible research
+    - what is reproducible research?
+    - `knitr` and R Markdown
 5. "Hands On" Example
 	- Ecological Association of Material Deprivation and Pediatric Hospital Utilization
 6. (Time Permitting)
