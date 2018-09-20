@@ -1,0 +1,160 @@
+---
+title: "Census Tract Event Rate and Community Deprivation"
+author: "Cole Brokamp"
+output: html_document
+---
+
+```{r echo=FALSE}
+knitr::opts_chunk$set(prompt=F,comment=NA,warning=FALSE,message=FALSE,collapse=TRUE,cache=FALSE)
+```
+
+## Importing Data
+
+```{r}
+library(tidyverse)
+library(sf)
+```
+
+Read in case data coordinates file and convert to `sf` object.
+
+```{r}
+raw_data <- read_csv('./simulated_case_locations.csv')
+
+d_events <- st_as_sf(raw_data, coords = c('X', 'Y')) %>% 
+    st_set_crs(4326)
+```
+
+Quick check on event data.
+
+```{r}
+mapview::mapview(d_events)
+```
+
+Get the census tract geometries for Hamilton County.
+
+```{r}
+library(tigris)
+options(tigris_class = "sf")
+options(tigris_use_cache = TRUE)
+```
+
+```{r}
+hamilton_tracts <- tracts(state = 39, county = 061) %>% 
+    select(GEOID)
+```
+
+Assign the corresponding census tract to each case location.  We will transform both data sets into the "Ohio South" projection system.
+
+```{r}
+d_events <- st_transform(d_events, 3735)
+hamilton_tracts <- st_transform(hamilton_tracts, 3735)
+d_events <- st_join(d_events, hamilton_tracts)
+```
+
+Summarize the number of events at the census tract level.
+
+```{r}
+d_tracts <- d_events %>% 
+    group_by(GEOID) %>% 
+    summarize(n_events = n()) %>% 
+    st_set_geometry(NULL)
+```
+
+## Calculating the Event Rate
+
+First, get the number of children per tract from the American Community Survey.
+
+```{r}
+d_pop <- tidycensus::get_acs(geography = 'tract',
+                             variables = 'B09001_001E',
+                             year = 2016,
+                             state = 39, county = 61,
+                             geometry = TRUE) %>%
+    select(GEOID, n_children = estimate)
+```
+
+Merge in the number of events per tract and then calculate the event rate per 1,000 children in each tract.
+
+```{r}
+d <- left_join(d_pop, d_tracts, by = 'GEOID') %>% 
+    mutate(event_rate = n_events / n_children * 1000)
+```
+
+Plot our event rate for each census tract.
+
+```{r}
+plot(d['event_rate'])
+```
+
+## Association with Deprivation Index
+
+Merge in our deprivation index and look at the relationship with the event rate.
+
+```{r}
+d_dep <- 'https://github.com/cole-brokamp/dep_index/raw/master/ACS_deprivation_index_by_census_tracts.rds' %>%
+  url() %>%
+  gzcon() %>%
+  readRDS() %>%
+  as_tibble() %>%
+  select(GEOID = census_tract_fips, dep_index)
+
+d <- left_join(d, d_dep, by='GEOID')
+```
+
+```{r}
+ggplot(d, aes(dep_index, event_rate)) +
+    geom_point(alpha = 0.5)
+```
+
+Spearman's rank correlation between the tract-level deprivation index and event rate.
+
+```{r}
+cor.test(d$dep_index, d$event_rate, method = 'spearman')
+```
+
+## Creating Side By Side Publication Ready Maps
+
+```{r}
+library(tmap)
+tmap_mode('plot')
+
+d %>% 
+    tm_shape(projection = 4326) +
+    tm_polygons(c('event_rate', 'dep_index'))
+
+```
+
+Now let's pretty up our maps.
+
+```{r}
+d %>% 
+    tm_shape(projection = 4326) +
+        tm_polygons(c('event_rate', 'dep_index'),
+                    alpha = 0.7,
+                    style = 'cont',
+                    palette = list('Blues', 'Reds'),
+                    title = c('', '', '', ''),
+                    showNA = FALSE,
+                    lwd = 0.3,
+                    border.col = "black", border.alpha = 1) +
+    tm_compass(position=c('right', 'bottom')) +
+    tm_scale_bar(position = c('right', 'bottom'), size=0.8) +
+    tm_layout(title = c('Event Rate (per 1,000)',
+                        'Deprivation Index'),
+              title.position = c("left", "top"),
+              title.size = 1.1,
+              legend.position = c("left", "bottom"),
+              legend.format = list(digits = 1),
+              frame = FALSE,
+              legend.text.size=0.8,
+              inner.margins = c(0.11, 0.03, 0.12, 0.03), # bottom, left, top, right
+              outer.margins = c(0, 0.05, 0, 0.05))
+```
+
+An interactive version of the maps.
+
+```{r}
+ttm()
+tmap_last()
+```
+
