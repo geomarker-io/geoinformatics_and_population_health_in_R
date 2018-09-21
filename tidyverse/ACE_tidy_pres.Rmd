@@ -1,0 +1,817 @@
+---
+title: "Making Data Tidy"
+subtitle: "ACE Annual Meeting"
+author: "Chris Wolfe, MS"
+date: "`r Sys.Date()`"
+
+output:
+  xaringan::moon_reader:
+    self_contained: true
+    seal: false
+    nature:
+      scroll: false
+      click: false
+      touch: false
+      highlightStyle: github
+      highlightLines: true
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+options(smart = TRUE)
+knitr::opts_chunk$set(comment = '')
+```
+
+class: center, middle
+
+# Making Data Tidy
+
+### ACE Annual Meeting
+### Cincinnati, OH
+
+#### Christopher Wolfe, MS
+#### `r Sys.Date()`
+
+---
+
+# Outline
+
+.pull-left[
+
+This will be an refresher/introductory course in basic data wrangling and exploration techniques using a collection of R packages.  We will cover the following topics:
+
+ - What is 'tidy' data?
+ - Tidyverse packages
+ - Data visualization
+ 
+ ]
+ 
+.pull-right[
+
+ ![](http://r4ds.had.co.nz/cover.png)
+ 
+]
+
+---
+
+class: 
+
+# Tidy Data
+
+What makes data 'tidy?'
+
+ - Each variable forms a column
+ - Each row forms an observation
+ - Each type of observational unit forms a table
+ 
+**Data cleaning can take a lot of time!**
+
+ - The tidy data framework provides a standard way of data organization and facilitates data exploration and analysis.
+
+---
+# 'Messy' Data
+ 
+```{r gsodr, echo = FALSE, message = FALSE, eval = TRUE}
+
+library(tidyverse)
+
+cincy_stations <- GSODR::nearest_stations(LAT = 39.10312, LON = -84.51202, distance = 20) # WEATHER STATIONS
+cincy_weather <- GSODR::get_GSOD(years = c(2017, 2018), station = cincy_stations) # GET WEATHER DATA
+
+cincy_clean <- cincy_weather %>% 
+  filter(STNID == "724210-93814", 
+         MONTH == "08") %>% 
+  select(STNID,
+         YEAR:DAY,
+         TEMP, ELEV_M, VISIB, PRCP, RH)
+
+messy <- cincy_clean %>% 
+  gather(weather_var, weather_value, TEMP:RH) %>%  # MAKE MESSY DATA
+  spread(DAY, weather_value)
+
+messy2 <- messy %>% 
+  select(STNID:`03`)
+
+knitr::kable(head(messy2, 9), format = "html")
+
+```
+
+.footnote[Cincinnati weather data downloaded from R package `GSODR`.]
+
+---
+## How to get from messy data ...
+
+```{r messy_tidy, echo = FALSE, eval = TRUE}
+
+knitr::kable(head(messy2, 5), format = "html")
+
+```
+
+## to tidy data...
+
+```{r messy_tidy2, echo = FALSE, eval = TRUE}
+
+cincy_clean2 <- head(cincy_clean, 2) 
+
+knitr::kable(cincy_clean2, format = "html")
+
+```
+
+---
+# Tidyverse
+
+The `tidyverse` package is a collection of packages designed to work with each other to facilitate data cleaning and transformation (or 'wrangling').
+
+[https://www.tidyverse.org/](https://www.tidyverse.org/)
+
+```{r tidyverse, message = FALSE}
+
+library(tidyverse)
+
+```
+
+- **`ggplot`**
+- `tibble`
+- **`tidyr`**
+- `readr`
+- **`purrr`**
+- **`dplyr`**
+- `stringr`
+- `forcats`
+
+---
+# %>% 
+
+The pipe operator (`%>%`) allows you to 'pipe' multiple operations together, i.e. it takes the output of one operation and makes it the input of the next operation. So,
+
+```{r eval = FALSE}
+my_other_function(my_function(X, Y), Z)
+```
+
+is equivalent to
+
+```{r eval = FALSE}
+my_function(X, Y) %>% 
+    my_other_function(Z)
+```
+
+The pipe always assumes that the output of the function will be supplied as the *first* argument of the other function.  If this is not the case, you can specify where it should go with a `.`
+
+```{r eval = FALSE}
+my_function(X, Y) %>% 
+    my_other_function(Z, .)
+```
+
+
+---
+# %>%
+
+*This, in turn:*
+
+- makes your code concise and easy to read
+- mitigates the need to create intermediate data sets
+
+
+```{r pipe, eval = FALSE}
+
+my_tibble <- tibble(x = 1:100)
+
+even_nums <- subset(my_tibble, x %% 2 == 0)
+even_nums$squared <- even_nums$x ^ 2
+plot(even_nums$x, even_nums$squared)
+
+
+my_tibble %>% 
+  filter(x %% 2 == 0) %>% 
+  mutate(squared = x ^ 2) %>% 
+  plot()
+
+
+```
+
+---
+# `tibble`
+
+Tibbles are a type of data frame, but with stricter requirements and better formatting. 
+
+Unlike `data.frame`, **`tibbles:`**
+
+- never change an input variables type
+- never change the names of variables, i.e. `my variable` will not become `my.variable`)
+- subsetting (`[ ]`) a tibble will always return a tibble
+- never do partial matching when extracting columns using `$`
+- display a description of the column type when printed
+
+Use `as_tibble()` or `tibble()` to coerce an object into a tibble.
+
+```{r, echo = FALSE, highlight = TRUE}
+
+head(cincy_clean2)
+
+```
+
+
+---
+# `dplyr`
+
+The `dplyr` package contains an array of very useful functions for data manipulation:
+
+- **`select()`**
+- **`mutate()`**
+- **`rename()`**
+- **`filter()`**
+- **`group_by()`**
+- **`summarise()`**
+
+Other functions:
+
+- `case_when()`
+- `bind_rows()`, `bind_cols`
+- `inner_join`, `full_join()`, `anti_join()`
+
+
+---
+# `dplyr::select()`
+
+`select()` enables you to keep and drop variables that you specify
+
+The syntax when used with `%>%` is: 
+
+```{r, eval = FALSE}
+
+* select(var1, var2, var3) # THIS KEEPS COLUMNS YOU SPECIFY
+* select(-var3) # ADDING A '-' PRIOR TO A VARIABLE WILL DROP IT
+
+```
+
+The example below creates a new variable selects the weather station ID, date information, and temperature.
+
+```{r select, echo = TRUE}
+
+temp_info <- cincy_clean %>%
+  select(STNID, YEAR, MONTH, DAY, TEMP) #'select(STNID:TEMP) ALSO WORKS'
+
+```
+
+
+```{r, echo = FALSE}
+
+knitr::kable(head(temp_info, 4), format = "html")
+
+```
+---
+# `dplyr::mutate()`
+
+`mutate()` adds new variables to a data frame, while preserving the existing columns of data.  
+                                          
+The syntax when used with `%>%` is: 
+
+```{r, eval = FALSE}
+
+* mutate(new_variable = definition, ...)
+
+```
+
+The example below creates a new variable`temp_measured_in_farenheit`.
+
+```{r mutate, echo = TRUE}
+
+farenheit <- temp_info %>%
+  mutate(temp_measured_in_farenheit = TEMP * 1.8 + 32)
+
+```
+
+```{r, echo = FALSE}
+
+knitr::kable(head(farenheit, 4), format = "html")
+
+```
+
+---
+# `dplyr::rename()`
+
+`rename()` allows you to rename a variable within a data frame.  
+
+The syntax when used with `%>%` is: 
+
+```{r, eval = FALSE}
+
+* rename(new_variable_name = old_variable_name, ...)
+
+```
+
+The example below renames `temp_measured_in_farenheit` to `TEMP_F`.
+
+```{r rename}
+
+farenheit2 <- farenheit %>%
+  rename(TEMP_F = temp_measured_in_farenheit)
+
+```
+
+
+```{r, echo = FALSE}
+
+knitr::kable(head(farenheit2, 2), format = "html")
+
+```
+
+---
+# `dplyr::filter()`
+
+`filter()` allows you to filter a data frame based on specified conditions.  
+
+The syntax when used with `%>%` is: 
+
+```{r, eval = FALSE}
+* filter(my_variable, condition)
+```
+
+The example below filters our data frame based on values of `TEMP_F`.
+
+```{r filter}
+
+farenheit_filter <- farenheit2 %>%
+  filter(TEMP_F > 79)
+
+```
+
+
+```{r, echo = FALSE}
+
+knitr::kable(head(farenheit_filter, 5), format = "html")
+
+```
+
+---
+## `dplyr::group_by()` & `summarise()`
+
+`group_by()` takes an existing data frame and creates a 'grouped' table based on specified conditions--any functions or operations applied to the table are performed on each group
+
+`summarise()` collapses observations in a data frame to a single summary statistic.
+
+`group_by()` and `summarise()` make work well together.  The syntax when used with `%>%` is: 
+
+```{r, eval = FALSE}
+* group_by(my_group_variable) %>% 
+* summarise(new_variable = a_function(another_variable))  # SUMMARISE TAKES COMMON SUMMARY FUNCTIONS LIKE:
+*                                                         # MEAN(), MEDIAN(), ETC.
+```
+
+---
+## `dplyr::group_by()` & `summarise()`
+
+The code below:
+ 1. groups the weather data by year
+ 2. computes the number of observations for each year and the mean and standard deviation of the temperatures:
+
+```{r summarise_temp, echo = TRUE}
+
+temp_summary <- farenheit2 %>%
+  group_by(YEAR) %>% 
+  summarise(n = n(),
+            mean_tempF = mean(TEMP_F, na.rm = TRUE),
+            sd_tempF = sd(TEMP_F))
+
+```
+
+
+```{r, echo = FALSE}
+
+knitr::kable(head(temp_summary), format = "html")
+
+```
+
+---
+# `tidyr`
+
+The `tidyr` was designed specifically for data tidying and has many functions that interplay with `dplyr` functions:
+
+- **`spread()`**
+- **`gather()`**
+- **`unite()`**
+
+Other functions: 
+
+- `separate()`
+- `nest()`
+- `drop_na()`
+
+---
+# `tidyr::gather()`
+
+```{r tidyr_temp, echo = FALSE}
+
+# FILTER MESSY DATA TO ONLY SHOW TEMP AND RH DATA TO HELP VISUALISE 'SPREAD' AND 'GATHER'
+
+messy_temp <- messy2 %>% 
+  filter(str_detect(weather_var, "TEMP|RH"))
+
+```
+
+
+`gather()` takes multiple columns and collapses them into 'key-value' pairs.  
+The `gather()` funtion is especially useful when you have columns that are not variables.
+The syntax when used with `%>%` is: 
+
+```{r, eval = FALSE}
+* gather(key, value, columns_to_gather)
+
+# THE 'KEY' DESCRIBES THE COLUMN NAMES COLLECTED 
+# THE 'VALUE' DESCRIBES THE DATA WITHIN EACH COLUMN COLLECTED
+```
+
+```{r}
+
+knitr::kable(head(messy_temp, 5), format = "html")
+
+```
+
+---
+# `tidyr::gather()`
+
+```{r, echo = FALSE}
+
+knitr::kable(head(messy_temp, 4), format = "html")
+
+```
+
+```{r gather, echo = TRUE}
+
+day_gather <- messy_temp %>% 
+  gather(key = DAY, weather_value, 5:7)
+
+```
+
+```{r, echo = FALSE}
+knitr::kable(head(day_gather, 4), format = 'html')
+```
+
+---
+# `tidyr::spread()`
+
+`spread()` will extend a 'key-value' pair across multiple columns.  
+Use `spread()` to put your data in 'wide' format.
+
+The syntax when used with `%>%` is: 
+
+```{r, eval = FALSE}
+* spread(key, value, ...)
+
+# THE 'KEY' IS A COLUMN THAT DESCRIBES THE INFORMATION
+# THE 'VALUE' IS THE DATA THAT IS TO BE SPREAD
+```
+
+```{r, echo = FALSE}
+
+knitr::kable(head(day_gather, 4), format = "html")
+
+```
+
+---
+# `tidyr::spread()`
+
+```{r, echo = FALSE}
+
+knitr::kable(head(day_gather, 4), format = "html")
+
+```
+
+```{r spread_weather, echo = TRUE}
+
+spread_weather <- day_gather %>% 
+  spread(key = weather_var, weather_value)
+
+```
+
+```{r, echo = FALSE}
+knitr::kable(head(spread_weather, 4), format = 'html')
+```
+
+---
+# `tidyr::unite()`
+
+`unite()` pastes data from multiple columns into one column.
+
+The syntax when used with `%>%` is: 
+
+```{r, eval = FALSE}
+* unite(name_of_new_column, columns_to_unite, sep = " ", ...)
+```
+
+There separate colmuns for `YEAR`, `MONTH`, and `DAY`--`unite()` can be used to create one `DATE` variable.
+
+```{r unite_date, echo = TRUE}
+
+date_unite <- spread_weather %>% 
+  unite(DATE, YEAR:DAY, sep = "-")
+
+```
+
+```{r, echo = FALSE}
+knitr::kable(head(date_unite, 4), format = 'html')
+```
+
+---
+# `purrr::map()`
+
+The `purrr` packaged consists of tools for functional programming and working with vectors.
+
+One of the most useful *(in my opinion)* is `map()`, which allows you to apply a function to each element of a vector.  
+
+`map()` is great for simplifying code for iterations.  Here is the syntax:
+
+```{r, eval = FALSE}
+* map(.x, .fun, ...)
+```
+
+- `.x` is the list or vector you with to map over
+- `.f` is a function, formula, or vector
+    - formulas are converted to functions and vectors are converted to extractor functions
+- `...` contains additional arguments passed on to `.f`
+
+See `?purrr::map` for details on functions as formulas and methods for specifying extractor functions
+
+---
+# `purrr::map()`
+
+- `map()` will *always* return a list
+- `map()` derivatives, e.g. `map_lgl()`, `map_dbl()`, are type strict and will always return the specified type or die trying
+- others include: `map_if()`, `map_at()`, `walk()`
+
+---
+# `purrr::map()`
+
+Let's say I want to know the mean of each weather value in my data frame:
+
+```{r map_mean, echo = TRUE, warning = FALSE}
+
+date_unite  %>%
+  select(TEMP, RH) %>% 
+  map_dbl(mean)
+
+```
+
+---
+# `purrr::map()`
+
+`map()` can also be used to apply a linear model or other function such as a correlation.
+
+The following code divides our weather data frame by 'YEAR' and then calculates the correlation between temperature and relative humidity for each yeaer
+
+```{r map_corr}
+
+cincy_clean %>% 
+  split(.$YEAR) %>% # SPLIT() DIVIDES THE DATA BASED ON A CONDITION
+  map(~cor(.$TEMP, .$RH))
+```
+
+
+---
+# `stringr`, `readr` & `forcats`
+
+The `stringr` packaged enables you to manipulate text and strings of text easily
+
+- `str_detect`
+- `str_replace`
+- `str_remove`
+- `str_trim`
+- `str_squish`
+- `str_sort`
+
+The `readr` package enables you to manipulate text and strings of text easily
+
+- `read_csv`
+- `read_tsv`
+- `write_csv`
+
+The `forcats` package for reordering and modifying factor levels
+
+- `fct_count`
+- `fct_lump`
+
+---
+# `ggplot2`
+
+The `ggplot2` is a versatile data visualization and graphics package. R has base graphing funtions, but `ggplot2` is far superior (*in my opinion*).
+
+With `ggplot2`, you begin a plot with the function `ggplot()`. 
+
+- `ggplot()` creates a coordinate system that you can add layers to. 
+
+- The first argument of `ggplot()` is the dataset to use in the graph. 
+
+```{r, eval = FALSE}
+* ggplot2::ggplot(data = my_data) # THIS CREATES A BLANK TEMPLATE
+```
+
+From there, you can add one or more layers to the template. Layers are added through 'geom functions'. 
+
+Each geom function is preceded by a plus sign (+). For `ggplot` the plus sign act similarly to the `%>%` opearator.
+
+```{r, eval = FALSE}
+* ggplot2::ggplot(data = my_data) +
+*  geom_point()  # THIS CREATES A SCATTER PLOT
+  
+```
+
+---
+# `ggplot2`
+
+- each geom function takes a `asthetic` argument, which defines how variables in your data are mapped to visual properties
+- when specified within `ggplot()`, all other layers in the plot will inherit it.
+- `x` and `y` arguments of `aes()` specify which variables to map to the X and Y axes. 
+- you can also map a third variable to your asthetic, to distinguish specific points or visually evaluate a hypothesis.
+- you can specify this third variable to be a specific color, shape, size, etc.
+
+---
+##### The following code creates a scatter plot of temperature and humidity:
+
+```{r, eval = TRUE}
+
+ggplot2::ggplot(data = cincy_clean, aes(x = TEMP, y = RH)) +
+  geom_point()
+
+```
+
+---
+
+```{r, eval = FALSE}
+
+ggplot2::ggplot(data = cincy_clean) +
+* geom_point(mapping = aes(x = TEMP, y = RH, color = YEAR))
+
+```
+
+```{r, eval = TRUE, echo = FALSE}
+
+ggplot2::ggplot(data = cincy_clean, aes(x = TEMP, y = RH, color = YEAR)) +
+   geom_point()
+
+```
+
+---
+
+```{r, eval = FALSE}
+
+ggplot2::ggplot(data = cincy_clean, aes(x = TEMP, y = RH)) +
+  geom_point() +
+* facet_wrap(~YEAR)
+
+```
+
+```{r, eval = TRUE, echo = FALSE}
+
+ggplot2::ggplot(data = cincy_clean, aes(x = TEMP, y = RH)) +
+  geom_point() +
+  facet_wrap(~YEAR)
+
+```
+
+---
+# `ggplot2`
+
+`ggplot2` can be a lot more exciting!
+
+Other common geoms include:
+
+- `geom_boxplot()`
+- `geom_line()`
+- `geom_boxplot()`
+- `geom_bar()`
+- `geom_histogram()`
+- `geom_density()`
+- **`geom_sf()`**
+
+If you are looking to visually display your data, it is likely that `ggplot2` can do it.
+
+---
+# Other Packages
+
+```{r other_pack, message = FALSE}
+
+library(ggrepel)
+library(viridis)
+library(readxl)
+library(lubridate)
+
+```
+
+- `lubridate`: collection of functions that makes working with dates and time easy
+
+- `ggrepel`: annotate plots--great for timeseries data
+
+- `viridis`: color palette--sharp, virbrant colors that print well in grey scale
+
+- `readxl`: import *.xlsx* in tidy format
+
+---
+# `tidycensus`
+
+`tidycensus` is an R packaged designed to easily retrieve US Census data from the Census API in a tidy format.
+
+- Data from the 5-year American Community Survey is can also be downloaded
+
+`tidycensus` also can be used to download corresponding spatial data such as census tract and county polygons using the `tigris` package.
+
+- Spatial data is returned with simple feature (`sf`) geometry.
+
+**`tidycensus` was designed to be used with `tidyverse` packages so that data can be manipulated, analyzed, and displayed clearly and easily.**
+
+---
+# `tidycensus`
+
+To start, you must obtain a Census API key from:  
+
+http://api.census.gov/data/key_signup.html
+
+The two basic functions for retrieving data are:
+
+1. `get_decennial()` 
+2. `get_acs()`
+
+`get_decennial()` and `get_acs()` take similar options.  Here is the syntax:
+
+```{r get_census, echo = TRUE, eval = FALSE}
+
+get_acs(
+   {{geography = }}, # "STATE", "COUNTY", "TRACT"
+   {{variables = ,}} # NAME OF GEOGRAPHIC OR DEMOGRAPHIC VARIABLE(S) TO RETRIEVE
+   {{year = , }}# YEAR OF CENSUS
+   {{geometry = )}} # LOGICAL - IF TRUE, RETURNS SIMPLE FEATURE GEOMETRY
+
+```
+
+.footnote[ https://walkerke.github.io/tidycensus/articles/basic-usage.html ]
+
+---
+# `tidycensus`
+
+`tidycensus` provides includes a command to search census tract and ACS variables: `tidycensus::load_variables()`
+
+The following code pulls down a table of ACS variables from 2010:
+
+```{r, echo = TRUE}
+
+{{acs_vars <- tidycensus::load_variables("2010", "acs5") }}
+
+```
+
+*There are over 20K variables that get returned!*
+
+To search for ACS variables, open the `acs_vars` data frame in the RStudio viewr and use the filter function or search box.
+
+```{r, echo = FALSE}
+
+acs_vars2 <- select(acs_vars, name, label) %>% 
+  filter(str_detect(label, "Median"),
+         str_detect(label, "income"))
+
+knitr::kable(head(acs_vars2, 3), format = "html")
+
+```
+
+
+---
+# `tidycensus`
+
+The following code downloads the median houshold income for every county in Ohio:
+
+```{r, echo = FALSE}
+library(tidycensus)
+```
+
+```{r, message = FALSE}
+
+county_income <- get_acs(
+  geography = "county",
+  state = "ohio",
+  year = 2010,
+ {{variables = "B06011_001"}})
+
+```
+
+```{r, echo = FALSE}
+
+knitr::kable(head(county_income, 5), format = "html")
+
+```
+
+
+---
+# References
+
+R for Data Science
+
+- http://r4ds.had.co.nz/
+
+`tidycensus`
+
+- https://walkerke.github.io/tidycensus/
+
+GSODR 
+
+- https://github.com/ropensci/GSODR
+
+
