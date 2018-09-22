@@ -1,0 +1,1004 @@
+---
+title: "Geospatial Data in `R` with the `sf` package"
+author: "Cole Brokamp"
+date: "23 September 2018"
+output:
+  xaringan::moon_reader:
+    self_contained: true
+    nature:
+      highlightStyle: solarized-dark
+      scroll: false
+      touch: false
+      click: false
+      countIncrementalSlides: false
+---
+
+```{r setup, include=FALSE}
+options(htmltools.dir.version = FALSE)
+knitr::opts_chunk$set(comment = '')
+```
+
+---
+### Overview
+
+Simple Features
+
+Coordinate Reference Systems
+
+Geometrical Operations
+
+Geometrical Manipulations
+
+Plotting and Mapping
+
+---
+class: inverse, center, middle
+
+# Simple Features
+
+---
+### Simple Features (SF)
+
+**Standard**
+
+A formal standard (ISO 19125-1:2004) that describes how the spatial geometry of real world objects can be stored in computers and which geometrical operations should be defined for them.
+
+Standard widely implemented (PostGIS, ESRI ArcGIS, GDAL, GeoJSON)
+
+**Feature**
+
+An object in the real world, often consisting of other objects
+
+Geometry describes *where* on Earth feature is located
+
+Attributes describe other properties
+
+---
+### SF Dimensions
+
+All geometries composed of points in 2-, 3-, or 4-dimensional space
+- X, Y
+- Z: altitude
+- M: measure associated with point, not the whole feature
+
+Four possible cases
+- XY
+- XYZ
+- XYM
+- XYZM
+
+---
+### SF Geometry Types
+
+| type | description                                        |
+| ---- | -------------------------------------------------- |
+| `POINT` | zero-dimensional geometry containing a single point |
+| `LINESTRING` | sequence of points connected by straight, non-self intersecting line pieces; one-dimensional geometry |
+| `POLYGON` | geometry with a positive area (two-dimensional); sequence of points form a closed, non-self intersecting ring; the first ring denotes the exterior ring, zero or more subsequent rings denote holes in this exterior ring |
+| `MULTIPOINT` | set of points; a MULTIPOINT is simple if no two Points in the MULTIPOINT are equal |
+| `MULTILINESTRING` | set of linestrings |
+| `MULTIPOLYGON` | set of polygons |
+| `GEOMETRYCOLLECTION` | set of geometries of any type except GEOMETRYCOLLECTION |
+
+Empty geometries are possible (missing, NULL values, or empty lists)
+
+---
+### Simple Features in R
+
+`sf` package represents simple features as native R objects (S3 classes, lists, matrix, vector)
+
+Typical use involves reading, manipulating, and writing sets of features (attributes and geometries)
+
+Attributes are usually stored in `data.frame` (or `tbl_df`) objects
+
+Geometries are also stored in a column, but in a list-column since geometries are not single-valued
+
+Three classes used to represent simple features
+- `sf`: table (`data.frame`) with feature attricutes and feature geometries
+- `sfc`: list-column with the geometries for each feature
+- `sfg`: feature geometry of an individual simple feature
+
+---
+### Objects with Simple Features
+
+```{r}
+library(sf)
+
+hc <-
+    url('https://colebrokamp-dropbox.s3.amazonaws.com/sim_39061.rds') %>% 
+    gzcon() %>%
+    readRDS()
+```
+
+
+```{r}
+class(hc)
+```
+
+---
+### Objects with Simple Features
+
+Geometries are held in the column with name
+
+```{r}
+attr(hc, 'sf_column')
+```
+
+```{r}
+print(hc, n = 3)
+```
+
+---
+### Objects with Simple Features
+
+![](https://r-spatial.github.io/sf/articles/sf_xfig.png)
+
+---
+### Methods For `sf` Objects
+
+```{r}
+methods(class = 'sf')
+```
+
+---
+### `sfc`: Simple Feature Geometry List-Column
+
+Calling list-column by `hc$geom` or `hc[[15]]` will work, but preferred method is
+
+```{r}
+( hc_geom <- st_geometry(hc) )
+```
+
+---
+### `sfc`: Simple Feature Geometry List-Column
+
+Geometries are printed in abbreviated form, but we can view a complete geometry by selecting it
+
+```{r}
+hc_geom[[1]]
+```
+
+This printing method is called *well-known text*, which is part of the simple features standard.
+
+---
+### `sfc`: Simple Feature Geometry List-Column
+
+The `MULTIPOLYGON` datastructure in R is a list of lists of lists of matrices. 
+
+For instance, we get the first four coordinate pairs of the exterior ring (first ring is always exterior) for the geometry of the third feature
+
+```{r}
+hc_geom[[3]][[1]][[1]][1:4, ]
+```
+
+Geometry columns have their own class
+
+```{r}
+class(hc_geom)
+```
+
+---
+### Methods for Geometry List-Columns
+
+```{r}
+methods(class = 'sfc')
+```
+
+---
+### `sfg`: Simple Feature Geometry
+
+Simple feature geometry (`sfg`) objects carry the geometry for a single feature, e.g. a point, linestring or polygon.
+
+Simple feature geometries are implemented as R native data, using the following rules
+
+- a single POINT is a numeric vector
+- a set of points, e.g. in a LINESTRING or ring of a POLYGON is a `matrix`, each row containing a point
+- any other set is a `list`
+
+---
+### `sfg`: Simple Feature Geometry
+
+In addition to a `POINT`, we have
+
+![](https://r-spatial.github.io/sf/articles/sf1_files/figure-html/unnamed-chunk-20-1.png)
+
+---
+### Reading
+
+```{r}
+filename <- system.file("shape/nc.shp", package="sf")
+nc <- st_read(filename)
+```
+
+Suppress the output by adding argument `quiet=TRUE` or
+
+```{r}
+nc <- read_sf(filename)
+```
+
+For `.shp`, benchmarks show ~10x speedup compared to `rgdal::readOGR()`
+
+---
+### Writing
+
+```{r}
+st_write(nc, "nc.shp")
+```
+
+An error prevents overwriting existing files
+
+```{r}
+st_write(nc, "nc.shp", delete_layer = TRUE)
+```
+
+Use its quiet alternative to overwrite by default
+
+```{r}
+write_sf(nc, "nc.shp")
+```
+
+```{r echo = FALSE}
+unlink('nc.*')
+```
+
+---
+### Drivers
+
+```{r}
+st_drivers() %>% as_tibble()
+```
+
+---
+### Drivers
+
+```{r}
+st_layers(system.file("osm/overpass.osm", package="sf"))
+```
+
+---
+class: inverse, center, middle
+
+# Coordinate Reference Systems
+
+---
+
+### Coordinate Reference Systems (CRS)
+
+Measurement units for coordinates
+
+Specify which location on Earth a particular coordinate pair refers to
+
+`sfc` objects can store CRS in `epsg` or `proj4string`
+
+All geometries in a `sfc` must have the same CRS, possibly `NA`
+
+---
+### `proj4string`
+
+A generic, string-based description of a CRS understood by the [PROJ](https://proj4.org/) library
+
+Defines projection types and (often) defines parameter values for particular projections
+
+Can cover an infinite amount of different projections
+
+---
+### `epsg`
+
+A well-understood set of spatial reference systems
+
+Maintained by International Association of Oil & Gass Producers (IOGP)
+
+[http://epsg.org](http://epsg.org/)
+
+From R, we can get access to the EPSG dataset programatically
+
+```{r}
+rgdal::make_EPSG() %>% as_tibble()
+```
+
+---
+
+### `epsg` Versus `proj4string`
+
+`epsg`: an integer ID for a known CRS
+
+`epsg` can be resolved into a `proj4string`, but the reverse won't always work
+
+`sf` supports both `proj4string` and `epsg`
+
+`sf` provides functions to convert or *transform* between different CRS
+
+`epsg` defined CRS allows for parameters to improve over time, but this may hamper reproducibility
+
+---
+### Setting CRS
+
+```{r}
+geom <-  st_sfc(st_point(c(0,1)), st_point(c(11,12)))
+s <-  st_sf(a = 15:16, geometry = geom)
+st_crs(s)
+s1 <-  s
+st_crs(s1) <- 4326
+st_crs(s1)
+s2 <- s
+st_crs(s2) <- "+proj=longlat +datum=WGS84"
+all.equal(s1, s2)
+```
+
+---
+### Setting CRS
+
+```{r}
+s1 %>% st_set_crs(3857)
+```
+
+---
+### Setting CRS
+
+A better approach that expresses intention
+
+```{r}
+s1 %>% st_set_crs(NA) %>% st_set_crs(3857)
+```
+
+---
+### CRS Transformations
+
+`st_transform()`, e.g. converting longitudes/latitudes in (EPSG:4326) to Ohio South (EPSG:3735) can be done by
+
+```{r}
+hc.ohio_south <- st_transform(hc, 3735)
+hc.ohio_south[['geometry']]
+```
+
+# Geometrical Operations
+
+---
+### Simple Example Dataset
+
+```{r echo = FALSE}
+b0 <- st_polygon(list(rbind(c(-1,-1), c(1,-1), c(1,1), c(-1,1), c(-1,-1))))
+b1 <- b0 + 2
+b2 <- b0 + c(-0.2, 2)
+x <- st_sfc(b0, b1, b2)
+y <- st_sfc(b0 * 0.8)
+a0 <- b0 * 0.8
+a1 <- a0 * 0.5 + c(2, 0.7)
+a2 <- a0 + 1
+a3 <- b0 * 0.5 + c(2, -0.5)
+y <- st_sfc(a0,a1,a2,a3)
+```
+
+```{r figure=TRUE}
+plot(x, border = 'red')
+plot(y, border = 'green', add = TRUE)
+```
+
+---
+### Unary Operations
+
+`st_is_valid` returns whether polygon geometries are topologically valid:
+
+```{r}
+st_is_valid(st_sfc(b0,b1))
+```
+
+`st_area` returns the area of polygon geometries, `st_length` the length of line geometries
+
+```{r}
+st_area(x)
+```
+
+`st_length` the length of line geometries:
+
+```{r}
+st_length(st_sfc(st_linestring(rbind(c(0,0),c(1,1),c(1,2)))))
+```
+
+---
+### Binary Operations: Distance and Relate
+
+`st_distance` computes the shortest distance matrix between geometries; this is a dense matrix:
+
+```{r}
+st_distance(x,y)
+```
+
+`st_relate` returns a dense character matrix with the DE9-IM relationships between each pair of geometries:
+
+```{r}
+st_relate(x,y)
+```
+
+---
+### Binary Logical Operations
+
+Return either a sparse matrix
+
+```{r}
+st_intersects(x,y)
+```
+
+or a dense matrix
+
+```{r}
+st_intersects(x, y, sparse = FALSE)
+```
+
+---
+### Other Binary Predicates
+
+```{r eval=FALSE}
+st_disjoint(x, y)
+st_touches(x, y)
+st_crosses(s, s)
+st_within(x, y)
+st_contains(x, y)
+st_overlaps(x, y)
+st_equals(x, y)
+st_covers(x, y)
+st_covered_by(x, y)
+st_equals_exact(x, y, 0.001)
+st_is_within_distance(x, y, 0.5)
+```
+
+---
+### `st_union`
+
+```{r, fig=TRUE}
+u <- st_union(x)
+plot(u)
+```
+
+---
+### `st_buffer`
+
+```{r, fig=TRUE}
+plot(st_buffer(u, 0.2), border = 'grey')
+plot(u, border = 'red', add = TRUE)
+plot(st_buffer(u, -0.2), add = TRUE)
+```
+
+---
+### `st_boundary`
+
+```{r}
+plot(st_boundary(x))
+```
+
+---
+### `st_convex_hull`
+
+```{r echo=FALSE}
+par(mfrow = c(1,2))
+```
+
+```{r}
+plot(st_convex_hull(x))
+plot(st_convex_hull(u))
+```
+
+---
+### `st_centroid`
+
+```{r}
+par(mfrow=c(1,2))
+plot(x)
+plot(st_centroid(x), add = TRUE, col = 'red')
+plot(x)
+plot(st_centroid(u), add = TRUE, col = 'red')
+```
+
+---
+### `st_intersection`
+
+```{r}
+plot(x)
+plot(y, add = TRUE)
+plot(st_intersection(st_union(x),st_union(y)),
+     add = TRUE, col = 'red')
+```
+
+---
+### `difference`
+
+```{r,fig=TRUE}
+plot(x, col = '#ff333388')
+plot(y, add=TRUE, col='#33ff3388')
+title("x: red, y: green")
+```
+
+---
+### `difference(x,y)`
+
+```{r,fig=TRUE}
+plot(x, border = 'grey')
+plot(st_difference(st_union(x),st_union(y)),
+     col = 'lightblue', add = TRUE)
+```
+
+---
+### `difference(y,x)`
+
+```{r,fig=TRUE}
+plot(x, border = 'grey')
+plot(st_difference(st_union(y),st_union(x)),
+     col = 'lightblue', add = TRUE)
+```
+
+---
+### `sym_difference`
+
+
+
+```{r,fig=TRUE}
+plot(x, border = 'grey')
+plot(st_sym_difference(st_union(y),st_union(x)),
+     col = 'lightblue', add = TRUE)
+```
+
+---
+### `st_segmentize`
+
+```{r}
+pts <- rbind(c(0,0), c(1,0), c(2,1), c(3,1))
+ls <- st_linestring(pts)
+plot(ls)
+points(pts)
+```
+
+---
+### `st_segmentize`
+
+```{r}
+ls.seg <- st_segmentize(ls, 0.3)
+plot(ls.seg)
+pts <- ls.seg
+points(pts)
+```
+
+---
+### `st_segmentize`
+```{r}
+pol <- st_polygon(list(rbind(c(0,0),c(1,0),c(1,1),c(0,1),c(0,0))))
+pol.seg <- st_segmentize(pol, 0.3)
+plot(pol.seg, col = 'grey')
+points(pol.seg[[1]])
+```
+
+---
+### `st_polygonize`
+
+```{r,fig=TRUE}
+par(mfrow = c(1,2))
+mls <- st_multilinestring(list(matrix(c(0,0,0,1,1,1,0,0),,2,byrow=TRUE)))
+x <- st_polygonize(mls)
+plot(mls, col = 'grey'); title("multilinestring")
+plot(x, col = 'grey'); title("polygon")
+```
+
+
+---
+class: inverse, center, middle
+
+# Geometrical Manipulations
+
+---
+### Tidyverse Integration
+
+`sf` objects are a subclass of `data.frame` or `tbl_df`
+
+Many of the `tidyverse`/`dplyr` verbs have methods for `sf` objects
+
+Given that both `sf` and `dplyr` are loaded, manipulations will return an `sf` object
+
+---
+### Accessing Observations
+
+```{r}
+hc <- st_transform(hc, 3735)
+hc[1, ]
+```
+
+---
+### Selecting Features
+
+```{r}
+library(dplyr)
+hc %>% select(event_rate) %>% head(2)
+```
+
+---
+### Selecting Features
+
+Geometry is "sticky", and gets added automatically
+
+To drop, use `st_set_geometry(NULL)`
+
+```{r}
+hc %>% select(event_rate) %>% st_set_geometry(NULL) %>% head(2)
+```
+
+---
+### Subsetting
+
+Square bracket notation
+
+```{r}
+hc[1, 'event_rate']
+```
+
+Use the `drop` argument to drop geometries
+
+```{r}
+hc[1, 'event_rate', drop = TRUE]
+```
+
+---
+### Spatial Object as Row Selector
+
+Select features that intersect with another spatial feature. Let's select all tracts intersecting with the tract we are in right now.
+
+```{r}
+our_tract <- hc[hc$GEOID == '39061003200', ]
+
+hc[our_tract, ]
+```
+
+---
+### Spatial Object as Row Selector
+
+`our_tract` is included in result set
+
+The default value for argument `op` in `[.sf` is `st_intersects` and the tract intersects with itself
+
+Exclude self-intersection by using predicate `st_touches` (overlapping features don't touch)
+
+```{r}
+hc[our_tract, op = st_touches]
+```
+
+---
+### Spatial Object as Row Selector
+
+Use `dplyr` to call the predicate directly
+
+```{r warning = FALSE}
+hc %>% filter(lengths(st_touches(., our_tract)) > 0)
+```
+
+---
+### Aggregating or Summarizing
+
+Compare the deprivation index between tracts that do and do not intersect with our tract
+
+```{r}
+a <- st_intersects(hc, our_tract) %>%
+    lengths() %>%
+    {. > 0} %>%
+    list(our_tract_hc = .) %>%
+    aggregate(hc[ ,'dep_index'], ., mean)
+
+a
+```
+
+---
+### Aggregating or Summarizing
+
+```{r}
+plot(a[2], col = c(grey(.8), grey(.5)))
+```
+
+---
+### Joining Two Feature Sets Based on Attributes
+
+`base::merge` and `dplyr::*_join` work for `sf` objects
+
+Joining takes place on attributes (ignoring geometries)
+
+Second argument should be a `data.frame` (or similar), not an `sf` object
+
+```{r}
+x <- st_sf(a = 1:2, geom = st_sfc(st_point(c(0,0)), st_point(c(1,1))))
+y <- data.frame(a = 2:3)
+left_join(x, y)
+```
+
+---
+### Joining Two Feature Sets Based on Geometries
+
+```{r fig=TRUE}
+x <- st_sf(a = 1:3, geom = st_sfc(st_point(c(1,1)), st_point(c(2,2)), st_point(c(3,3))))
+y <- st_buffer(x, 0.1)
+x <- x[1:2, ]
+y <- y[2:3, ]
+plot(st_geometry(x), xlim = c(.5, 3.5))
+plot(st_geometry(y), add = TRUE)
+```
+
+---
+### Joining Two Feature Sets Based on Geometries
+
+`st_join` is a left join, retaining all records of the first argument
+
+Returns geometry from first argument
+
+```{r}
+st_join(x, y)
+```
+
+---
+### Spatial Join Predicates
+
+Any function compatible to `st_intersects` (the default), e.g.
+
+```{r}
+st_join(x, y, join = st_covers)
+```
+
+No matching y records because points don't cover circles
+
+---
+class: inverse, center, middle
+
+# Plotting Simple Features
+
+---
+### Base Plotting Geometry Only: `sfc`
+
+Plot methods defined for `sf` and `sfc` objects and geometry list-columns show only the geometry
+
+```{r}
+plot(st_geometry(hc))
+```
+---
+### Base Plotting Geometry Only: `sfc`
+
+Can be further annotated with colors, symbols, etc., as the usual base plots
+
+```{r warning=FALSE}
+plot(st_geometry(hc), col = sf.colors(12, categorical = TRUE),
+     border = 'grey')
+plot(st_geometry(st_centroid(hc)), pch = 3, cex = 0.6,
+     col = 'black', add = TRUE)
+```
+
+---
+### Base Plotting Geometry With Attributes: `sf`
+
+```{r}
+plot(hc)
+```
+
+---
+### Base Color Key
+
+```{r}
+plot(hc['dep_index'])
+```
+
+---
+### Color Key Location
+
+1=below, 2=left, 3=above and 4=right
+
+```{r}
+plot(hc['dep_index'], key.pos = 2)
+```
+
+---
+### Color Key Size
+
+Use either relative units (a number between 0 and 1) or absolute units (like `lcm(1.3)` for 1.3 cm)
+
+```{r}
+plot(hc['dep_index'], key.pos = 2, key.width = lcm(1.3), key.length = 0.7)
+```
+
+---
+### Color Key For Factors
+
+```{r}
+hc$dep_quintiles <- cut(hc$dep_index, 5)
+plot(hc['dep_quintiles'], key.pos = 4, key.width = lcm(4.5))
+```
+
+---
+### Controlling Color Breaks
+
+`breaks` specifies breaks and `nbreaks` specifies number of equally spaced breaks
+
+```{r}
+plot(hc['dep_index'], breaks = c(0, .2, .8, 1))
+```
+
+---
+### Controlling Color Breaks Styles
+
+`'pretty'`, `'equal'`, `'quantile'`, `'jenks'` ([natural breaks optimization](https://en.wikipedia.org/wiki/Jenks_natural_breaks_optimization))
+
+```{r}
+plot(hc['dep_index'], breaks = "jenks")
+```
+
+---
+### How Does `sf` Project Geographic Coordinates?
+
+> Package `sf` plots projected maps in their native projection, meaning that easting and northing are mapped linearly to the x and y axis, keeping an aspect ratio of 1 (one unit east equals one unit north). For geographic data, where coordinates constitute degrees longitude and latitude, it chooses an [equirectangular projection](https://en.wikipedia.org/wiki/Equirectangular_projection) (also called _equidistant circular_), where at the center of the plot (or of the bounding box) one unit north equals one unit east.
+
+---
+### `ggplot2::geom_sf()`
+
+```{r}
+library(ggplot2)
+ggplot() + geom_sf(data = hc)
+```
+
+---
+### Polygons Colored Using `aes`
+
+```{r}
+ggplot(hc, aes(fill = event_rate)) +
+    geom_sf() +
+    viridis::scale_fill_viridis()
+```
+
+---
+### Sets of Maps as Facet Plots
+
+```{r echo=FALSE}
+library(dplyr)
+library(tidyr)
+```
+
+```{r}
+hc %>%
+    ggplot(aes(fill = dep_index)) +
+    geom_sf() +
+    viridis::scale_fill_viridis() +
+    facet_wrap(~dep_quintiles)
+
+```
+
+---
+### `mapview`
+
+Creates interactive maps in html pages
+
+Relies on `leaflet` package and add sensible defaults
+
+Useful for quick, interactive checks of spatial data
+
+Extensive examples are found at https://r-spatial.github.io/mapview/
+
+---
+### `mapview`
+
+```{r}
+mapview::mapview(hc['dep_index'])@map
+```
+
+---
+### `tmap` Emphasizes Publication-Ready Maps
+
+```{r warning = FALSE}
+library(tmap)
+qtm(hc)
+```
+
+---
+### `tmap` interactive leaflet maps
+
+```{r message = FALSE}
+tmap_mode("view")
+tm_shape(hc) + tm_fill('dep_index', palette = sf.colors(5))
+```
+
+---
+### Replotting the Last Map in Non-Interactive Mode
+
+```{r message = FALSE}
+ttm()
+tmap_last()
+```
+
+------
+class: inverse
+
+### Resources
+
+- Online home for `sf`: https://r-spatial.github.io/sf/
+- Twitter: `#rstats`
+- Online home for this course (slides and source code): https://github.com/cole-brokamp/geoinformatics_and_population_health_in_R
+
+**Cole Brokamp**
+cole.brokamp@cchmc.org
+@cole_brokamp
+https://colebrokamp.com
+
+---
+class: inverse, center, middle
+
+# Appendix
+
+---
+### How does `sf` deal with secondary geometry columns?
+
+`sf` objects can have more than one geometry list-column
+
+But always only one geometry column is considered _active_, and returned by `st_geometry`
+
+When there are multiple geometry columns, the default `print` methods reports which one is active
+
+```{r}
+hc$geom2 <- st_centroid(st_geometry(hc))
+print(hc, n = 2)
+```
+
+---
+## How does `sf` deal with secondary geometry columns?
+
+Switch the active geometry by using `st_geometry<-` or `st_set_geometry`
+
+```{r}
+par(mfrow = c(1,2), mar = c(0,0,0,0))
+plot(st_geometry(hc))
+st_geometry(hc) <- "geom2"
+plot(st_geometry(hc))
+```
+
+---
+### What is this error/warning/message about?
+
+`although coordinates are longitude/latitude, xxx assumes that they are planar`
+
+- most geometry calculating routines come from the [GEOS](https://trac.osgeo.org/geos/) library
+- this library considers coordinates in a two-dimensional, flat, Euclidian space
+- *not* true for longitude & latitude data
+- example: a polygon enclosing the North pole, which should include the pole
+
+```{r}
+polygon <- st_sfc(st_polygon(list(rbind(c(0,80), c(120,80), c(240,80), c(0,80)))), crs = 4326)
+pole <-  st_sfc(st_point(c(0,90)), crs = 4326)
+st_intersects(polygon, pole)
+```
+
+---
+
+### What is this error/warning/message about?
+
+`st_centroid does not give correct centroids for longitude/latitude data`
+
+Similar to the above, centroids are computed assuming flat, 2D space:
+
+```{r}
+st_centroid(polygon)[[1]]
+```
+
+where the centroid should have been the pole.
+
+---
+
+### What is this error/warning/message about?
+
+`dist is assumed to be in decimal degrees (arc_degrees).`
+
+- `sf` assumes a distance value is given in degrees
+- avoid by passing a value with the right units
+
+```{r}
+pt <- st_sfc(st_point(c(0,0)), crs = 4326)
+buf <- st_buffer(polygon, 1)
+buf <- st_buffer(polygon, units::set_units(1, degree))
+```
+
+---
+
+### Conversion (to and from `sp`)
+
+```{r}
+showMethods("coerce", classes = "sf")
+methods(st_as_sf)
+methods(st_as_sfc)
+```
+
