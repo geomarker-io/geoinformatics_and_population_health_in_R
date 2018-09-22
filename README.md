@@ -38,19 +38,19 @@ Recommended supplementary readings include:
 
 ## Detailed Course Outline
 
-1. Introduction to Geoinformatics for Epidemiology
+1. Introduction to Geoinformatics for Epidemiology [[slides](https://github.com/cole-brokamp/geoinformatics_and_population_health_in_R/blob/master/GRAPPH_talk_ACE_2018_optimized.pdf)]
 	- geomarkers
 	- geocoding
 	- geospatial data
 	- geomarker assessment
 	- examples
-2. `tidyverse` Refresher
+2. `tidyverse` Refresher [[Rmd](https://raw.githubusercontent.com/cole-brokamp/geoinformatics_and_population_health_in_R/master/tidyverse/ACE_tidy_pres.Rmd) / [slides](https://rawgit.com/cole-brokamp/geoinformatics_and_population_health_in_R/master/tidyverse/ACE_tidy_pres.html#1)]
 	- tidy data structures
     - `magrittr` and the pipe operator
     - `dplyr`: `select()`, `filter()`, `mutate()`, `rename()`
     - `tidyr`: `spread()`, `gather()`
     - `tidycensus`
-3. Geospatial data in `R`
+3. Geospatial data in `R` [[Rmd](https://raw.githubusercontent.com/cole-brokamp/geoinformatics_and_population_health_in_R/master/geospatial_data_in_R/geospatial_data_in_R.Rmd) / [slides](https://rawgit.com/cole-brokamp/geoinformatics_and_population_health_in_R/master/geospatial_data_in_R/geospatial_data_in_R.html)]
 	- data formats and projections
 	- simple features and `sf` package for R
     - Mapping in `R` (`ggplot2`, `tmap`, `mapview`)
@@ -58,7 +58,7 @@ Recommended supplementary readings include:
 4. Why to use `R` for reproducible research
     - what is reproducible research?
     - `knitr` and R Markdown
-5. "Hands On" Example
+5. "Hands On" Example [[Rmd](https://github.com/cole-brokamp/geoinformatics_and_population_health_in_R/blob/master/hands_on/hands_on.Rmd) / [html](https://rawgit.com/cole-brokamp/geoinformatics_and_population_health_in_R/master/hands_on/hands_on.html)]
 	- Ecological Association of Material Deprivation and Pediatric Hospital Utilization
 6. (Time Permitting)
 	- Open discussion and questions
