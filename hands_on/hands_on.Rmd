@@ -12,9 +12,8 @@ knitr::opts_chunk$set(prompt=F,comment=NA,warning=FALSE,message=FALSE,collapse=T
 
 Before you run this script, you will need to add your Census API key below.  
 
-
-```{r, eval = TRUE}
-tidycensus::census_api_key("PASTE YOUR KEY HERE", install = TRUE)
+```{r eval = FALSE}
+tidycensus::census_api_key("<PASTE YOUR KEY HERE>", install = TRUE)
 ```
 
 Setting `install =` to `TRUE` will store your API key in your `.Renviron` to so that it is available in future sessions.
@@ -24,7 +23,6 @@ Setting `install =` to `TRUE` will store your API key in your `.Renviron` to so 
 ```{r}
 library(tidyverse)
 library(sf)
-
 ```
 
 Read in case data coordinates file and convert to `sf` object.
@@ -39,7 +37,7 @@ d_events <- st_as_sf(raw_data, coords = c('X', 'Y')) %>%
 Quick check on event data.
 
 ```{r}
-mapview::mapview(d_events)
+mapview::mapview(d_events)@map
 ```
 
 Get the census tract geometries for Hamilton County.
