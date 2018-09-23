@@ -132,7 +132,7 @@ library(tidyverse)
 ```
 
 - **`ggplot`**
-- `tibble`
+- **`tibble`**
 - **`tidyr`**
 - `readr`
 - **`purrr`**
@@ -172,21 +172,24 @@ my_function(X, Y) %>%
 - makes your code concise and easy to read
 - mitigates the need to create intermediate data sets
 
+**The following code chunks achieve the same results:** 
 
 ```{r pipe, eval = FALSE}
 
-my_tibble <- tibble(x = 1:100)
+my_df <- data.frame(x = 1:100)
 
-even_nums <- subset(my_tibble, x %% 2 == 0)
-even_nums$squared <- even_nums$x ^ 2
-plot(even_nums$x, even_nums$squared)
+* even_nums <- subset(my_df, x %% 2 == 0)
+* even_nums$squared <- even_nums$x ^ 2
+* plot(even_nums$x, even_nums$squared)
 
+```
 
-my_tibble %>% 
-  filter(x %% 2 == 0) %>% 
-  mutate(squared = x ^ 2) %>% 
-  plot()
+```{r, eval = FALSE}
 
+* my_df %>% 
+*  filter(x %% 2 == 0) %>% 
+*  mutate(squared = x ^ 2) %>% 
+*  plot()
 
 ```
 
@@ -198,7 +201,7 @@ Tibbles are a type of data frame, but with stricter requirements and better form
 Unlike `data.frame`, **`tibbles:`**
 
 - never change an input variables type
-- never change the names of variables, i.e. `my variable` will not become `my.variable`)
+- never change the names of variables, i.e. '`my variable`' will not become `my.variable`)
 - subsetting (`[ ]`) a tibble will always return a tibble
 - never do partial matching when extracting columns using `$`
 - display a description of the column type when printed
@@ -355,8 +358,10 @@ knitr::kable(head(farenheit_filter, 5), format = "html")
 
 ```{r, eval = FALSE}
 * group_by(my_group_variable) %>% 
-* summarise(new_variable = a_function(another_variable))  # SUMMARISE TAKES COMMON SUMMARY FUNCTIONS LIKE:
-*                                                         # MEAN(), MEDIAN(), ETC.
+* summarise(new_variable = a_function(another_variable))  
+
+# SUMMARISE TAKES COMMON SUMMARY FUNCTIONS LIKE:
+# MEAN(), MEDIAN(), ETC.
 ```
 
 ---
@@ -422,7 +427,7 @@ The syntax when used with `%>%` is:
 # THE 'VALUE' DESCRIBES THE DATA WITHIN EACH COLUMN COLLECTED
 ```
 
-```{r}
+```{r, echo = FALSE}
 
 knitr::kable(head(messy_temp, 5), format = "html")
 
@@ -558,7 +563,7 @@ date_unite  %>%
 
 `map()` can also be used to apply a linear model or other function such as a correlation.
 
-The following code divides our weather data frame by 'YEAR' and then calculates the correlation between temperature and relative humidity for each yeaer
+The following code divides our weather data frame by 'YEAR' and then calculates the correlation between temperature and relative humidity for each year
 
 ```{r map_corr}
 
